@@ -1,0 +1,300 @@
+<Window x:Class="BlockVision.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Block Vision PC - Настройки" Height="720" Width="980"
+        WindowStartupLocation="CenterScreen"
+        Background="#0F0C29"
+        ResizeMode="CanResize">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Background="#1E1E2F" Grid.Column="0">
+            <StackPanel Margin="0,20,0,0">
+                <StackPanel HorizontalAlignment="Center" Margin="0,0,0,30">
+                    <Border Width="60" Height="60" CornerRadius="30" Background="#6C5CE7" HorizontalAlignment="Center">
+                        <TextBlock Text="🛡️" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Block Vision PC" Foreground="White" FontWeight="Bold" Margin="0,10,0,0" HorizontalAlignment="Center"/>
+                    <TextBlock Text="v1.0.0" Foreground="#666688" FontSize="11" HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <Button Content="🎨 Персонализация" Tag="Personalization" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+                <Button Content="🔒 Безопасность" Tag="Security" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="#6C5CE7"/>
+                <Button Content="⚙️ Блокировка" Tag="Locking" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+                <Button Content="🔌 Интеграции" Tag="Integration" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+                <Button Content="🔑 Ключи активации" Tag="Keys" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+                <Button Content="📜 Журнал" Tag="Logs" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+                <Button Content="💎 Хранилище" Tag="Vault" Style="{StaticResource NeonButton}" Margin="15,5" Click="Menu_Click" Background="Transparent" BorderBrush="#3D3D5C" BorderThickness="1"/>
+
+                <Border Margin="15,30,15,10" Background="#2D2D44" CornerRadius="8" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="Статус" Foreground="#8888AA" FontSize="11"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#00CEC9" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="StatusText" Text="Защита активна" Foreground="White" FontSize="12" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock x:Name="HardwareIdLabel" Text="HWID: ..." Foreground="#666688" FontSize="10" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Button Content="🔒 Заблокировать сейчас" Margin="15,10" Background="#FF7675" Style="{StaticResource NeonButton}" Click="LockNow_Click"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main content -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="#13131F">
+            <StackPanel Margin="30" x:Name="ContentPanel">
+
+                <!-- SECURITY -->
+                <StackPanel x:Name="SecurityPanel">
+                    <TextBlock Text="Безопасность" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                    
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Пароль администратора" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="NewPasswordBox" Grid.Column="0" Height="40" Margin="0,0,10,0" Background="#2D2D44" Foreground="White" BorderBrush="#3D3D5C" VerticalContentAlignment="Center" Padding="10"/>
+                                <Button Grid.Column="1" Content="Сменить пароль" Style="{StaticResource NeonButton}" Height="40" Click="ChangePassword_Click"/>
+                            </Grid>
+                            <TextBlock x:Name="PasswordStrengthText" Text="Сложность: ..." Foreground="#888888" FontSize="11" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Параметры защиты" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,15"/>
+                            <CheckBox x:Name="EncryptConfigCheck" Content="Шифровать конфиг (AES-GCM + DPAPI)" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="AntiTamperCheck" Content="Обнаружение взлома (anti-tamper)" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="SelfProtectionCheck" Content="Самозащита процесса" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBlock Text="Мин. длина пароля:" Foreground="#888888" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="MinLengthBox" Width="60" Background="#2D2D44" Foreground="White" Text="8"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- PERSONALIZATION -->
+                <StackPanel x:Name="PersonalizationPanel" Visibility="Collapsed">
+                    <TextBlock Text="Персонализация" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Тема" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <ComboBox x:Name="ThemeCombo" Height="35" Background="#2D2D44" Foreground="White">
+                                <ComboBoxItem Content="Dark" IsSelected="True"/>
+                                <ComboBoxItem Content="Light"/>
+                                <ComboBoxItem Content="Neon"/>
+                                <ComboBoxItem Content="Matrix"/>
+                                <ComboBoxItem Content="Cyberpunk"/>
+                                <ComboBoxItem Content="Defender (Windows Security style)"/>
+                            </ComboBox>
+
+                            <TextBlock Text="Приветственное сообщение" Foreground="#CCCCCC" Margin="0,15,0,5"/>
+                            <TextBox x:Name="WelcomeMsgBox" Height="40" Background="#2D2D44" Foreground="White" Padding="10"/>
+
+                            <TextBlock Text="Сообщение блокировки" Foreground="#CCCCCC" Margin="0,15,0,5"/>
+                            <TextBox x:Name="LockMsgBox" Height="60" Background="#2D2D44" Foreground="White" Padding="10" TextWrapping="Wrap" AcceptsReturn="True"/>
+
+                            <Grid Margin="0,15,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Основной цвет" Foreground="#888888" FontSize="11"/>
+                                    <TextBox x:Name="PrimaryColorBox" Text="#6C5CE7" Background="#2D2D44" Foreground="White" Height="35" Margin="0,5,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Акцентный цвет" Foreground="#888888" FontSize="11"/>
+                                    <TextBox x:Name="AccentColorBox" Text="#00CEC9" Background="#2D2D44" Foreground="White" Height="35" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <CheckBox x:Name="BlurCheck" Content="Размытие фона (blur)" Foreground="#CCCCCC" Margin="0,15,0,0" IsChecked="True"/>
+                            <CheckBox x:Name="ParticlesCheck" Content="Частицы / анимация" Foreground="#CCCCCC" Margin="0,5,0,0" IsChecked="True"/>
+                            <CheckBox x:Name="ShowClockCheck" Content="Показывать часы" Foreground="#CCCCCC" Margin="0,5,0,0" IsChecked="True"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- LOCKING -->
+                <StackPanel x:Name="LockingPanel" Visibility="Collapsed">
+                    <TextBlock Text="Настройки блокировки" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <CheckBox x:Name="LockOnStartupCheck" Content="Блокировать при запуске системы" Foreground="#CCCCCC" Margin="0,0,0,10"/>
+                            <CheckBox x:Name="LockOnIdleCheck" Content="Блокировать при простое" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <StackPanel Orientation="Horizontal" Margin="20,0,0,10">
+                                <TextBlock Text="Минут простоя:" Foreground="#888888" VerticalAlignment="Center"/>
+                                <TextBox x:Name="IdleMinutesBox" Width="60" Margin="10,0,0,0" Background="#2D2D44" Foreground="White" Text="5"/>
+                            </StackPanel>
+                            <CheckBox x:Name="BlockTaskManagerCheck" Content="Блокировать Диспетчер задач" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="BlockAltTabCheck" Content="Блокировать Alt+Tab, Win клавиши" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="CoverAllMonitorsCheck" Content="Покрывать все мониторы" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="PlaySoundCheck" Content="Звук при блокировке" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                                <TextBlock Text="Попыток до блокировки:" Foreground="#888888" VerticalAlignment="Center"/>
+                                <TextBox x:Name="FailedAttemptsBox" Width="60" Margin="10,0,20,0" Background="#2D2D44" Foreground="White" Text="5"/>
+                                <TextBlock Text="Минут блока:" Foreground="#888888" VerticalAlignment="Center"/>
+                                <TextBox x:Name="LockoutMinutesBox" Width="60" Margin="10,0,0,0" Background="#2D2D44" Foreground="White" Text="10"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- INTEGRATION -->
+                <StackPanel x:Name="IntegrationPanel" Visibility="Collapsed">
+                    <TextBlock Text="Интеграции" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <TextBlock Text="Любые приложения могут заблокировать ПК через наш SDK. Например, Microsoft Defender при обнаружении угрозы." 
+                               Foreground="#888888" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="IPC (Named Pipe) - для локальных приложений" Foreground="White" FontWeight="SemiBold"/>
+                            <CheckBox x:Name="EnableIpcCheck" Content="Включить IPC сервер" Foreground="#CCCCCC" Margin="0,10,0,5" IsChecked="True"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBlock Text="Имя Pipe:" Foreground="#888888" VerticalAlignment="Center" Width="100"/>
+                                <TextBox x:Name="PipeNameBox" Text="BlockVisionPC_Pipe" Width="300" Background="#2D2D44" Foreground="White" Height="35"/>
+                            </StackPanel>
+
+                            <TextBlock Text="HTTP API (127.0.0.1) - для кросс-языковых интеграций" Foreground="White" FontWeight="SemiBold" Margin="0,20,0,0"/>
+                            <CheckBox x:Name="EnableHttpCheck" Content="Включить HTTP API" Foreground="#CCCCCC" Margin="0,10,0,5"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBlock Text="Порт:" Foreground="#888888" VerticalAlignment="Center" Width="100"/>
+                                <TextBox x:Name="HttpPortBox" Text="17845" Width="100" Background="#2D2D44" Foreground="White" Height="35"/>
+                                <TextBlock Text="Токен:" Foreground="#888888" VerticalAlignment="Center" Margin="20,0,10,0"/>
+                                <TextBox x:Name="ApiTokenBox" Width="200" Background="#2D2D44" Foreground="White" Height="35"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Microsoft Defender" Foreground="White" FontWeight="SemiBold" Margin="0,20,0,0"/>
+                            <CheckBox x:Name="DefenderEnabledCheck" Content="Включить интеграцию с Defender" Foreground="#CCCCCC" Margin="0,10,0,5" IsChecked="True"/>
+                            <CheckBox x:Name="DefenderLockOnThreatCheck" Content="Блокировать при угрозе от Defender" Foreground="#00CEC9" Margin="0,0,0,5" IsChecked="True" FontWeight="Bold"/>
+                            <CheckBox x:Name="DefenderLockOnPupCheck" Content="Блокировать и при PUP (потенциально нежелательные)" Foreground="#CCCCCC" Margin="0,0,0,5"/>
+
+                            <Border Background="#2D2D44" CornerRadius="8" Padding="15" Margin="0,15,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Пример интеграции (C#):" Foreground="#888888" FontSize="11"/>
+                                    <TextBox Text="BlockVisionClient.QuickLock(&quot;Угроза&quot;, &quot;Defender&quot;);" 
+                                             Background="#1A1A2E" Foreground="#00CEC9" FontFamily="Consolas" 
+                                             IsReadOnly="True" Margin="0,5,0,0" Padding="10" Height="60" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Защищенные папки (File Guard)" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <ListBox x:Name="ProtectedFoldersList" Height="120" Background="#2D2D44" Foreground="White" BorderBrush="#3D3D5C"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBox x:Name="NewFolderBox" Width="350" Height="35" Background="#2D2D44" Foreground="White"/>
+                                <Button Content="Добавить" Style="{StaticResource NeonButton}" Margin="10,0,0,0" Height="35" Click="AddFolder_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- KEYS -->
+                <StackPanel x:Name="KeysPanel" Visibility="Collapsed">
+                    <TextBlock Text="Ключи активации" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="Генерация новых ключей" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,15"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="Метка:" Foreground="#888888" VerticalAlignment="Center" Width="100"/>
+                                <TextBox x:Name="KeyLabelBox" Text="Premium License" Width="250" Background="#2D2D44" Foreground="White" Height="35"/>
+                                <TextBlock Text="Срок (дней):" Foreground="#888888" VerticalAlignment="Center" Margin="20,0,10,0"/>
+                                <TextBox x:Name="KeyDaysBox" Text="365" Width="80" Background="#2D2D44" Foreground="White" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <CheckBox x:Name="BindToHardwareCheck" Content="Привязать к этому ПК" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                                <Button Content="Сгенерировать ключ" Style="{StaticResource NeonButton}" Height="35" Click="GenerateKey_Click"/>
+                            </StackPanel>
+                            <TextBox x:Name="GeneratedKeyBox" Height="45" Background="#1A1A2E" Foreground="#00CEC9" FontFamily="Consolas" FontSize="14" IsReadOnly="True" Padding="10" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20">
+                        <StackPanel>
+                            <TextBlock Text="Активные ключи" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <ListView x:Name="KeysListView" Height="250" Background="#2D2D44" Foreground="White" BorderBrush="#3D3D5C">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Ключ" Width="250" DisplayMemberBinding="{Binding Key}"/>
+                                        <GridViewColumn Header="Метка" Width="120" DisplayMemberBinding="{Binding Label}"/>
+                                        <GridViewColumn Header="Истекает" Width="120" DisplayMemberBinding="{Binding ExpiresAt}"/>
+                                        <GridViewColumn Header="Активаций" Width="80" DisplayMemberBinding="{Binding CurrentActivations}"/>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- LOGS -->
+                <StackPanel x:Name="LogsPanel" Visibility="Collapsed">
+                    <TextBlock Text="Журнал аудита" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <Button Content="Обновить" Style="{StaticResource NeonButton}" Height="35" Click="RefreshLogs_Click" Margin="0,0,10,0"/>
+                                <Button Content="Экспорт" Height="35" Background="Transparent" Foreground="#CCCCCC" BorderBrush="#3D3D5C" BorderThickness="1" Click="ExportLogs_Click"/>
+                                <Button Content="Очистить" Height="35" Background="#33FF7675" Foreground="#FF7675" BorderThickness="0" Margin="10,0,0,0" Click="ClearLogs_Click"/>
+                            </StackPanel>
+                            <ListView x:Name="LogsListView" Height="400" Background="#2D2D44" Foreground="White" BorderBrush="#3D3D5C" FontFamily="Consolas" FontSize="11">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Время" Width="160" DisplayMemberBinding="{Binding Timestamp}"/>
+                                        <GridViewColumn Header="Тип" Width="150" DisplayMemberBinding="{Binding Type}"/>
+                                        <GridViewColumn Header="Сообщение" Width="400" DisplayMemberBinding="{Binding Message}"/>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- VAULT -->
+                <StackPanel x:Name="VaultPanel" Visibility="Collapsed">
+                    <TextBlock Text="Защищенное хранилище" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <TextBlock Text="Секреты автоматически блокируют ПК при доступе" Foreground="#888888" Margin="0,0,0,20"/>
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <TextBox x:Name="VaultNameBox" Width="200" Height="35" Background="#2D2D44" Foreground="White" Margin="0,0,10,0"/>
+                                <TextBox x:Name="VaultSecretBox" Width="300" Height="35" Background="#2D2D44" Foreground="White" Margin="0,0,10,0"/>
+                                <Button Content="Добавить" Style="{StaticResource NeonButton}" Height="35" Click="AddVaultItem_Click"/>
+                            </StackPanel>
+                            <ListView x:Name="VaultListView" Height="300" Background="#2D2D44" Foreground="White">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Имя" Width="200" DisplayMemberBinding="{Binding Name}"/>
+                                        <GridViewColumn Header="Категория" Width="120" DisplayMemberBinding="{Binding Category}"/>
+                                        <GridViewColumn Header="Доступов" Width="80" DisplayMemberBinding="{Binding AccessCount}"/>
+                                        <GridViewColumn Header="Создан" Width="150" DisplayMemberBinding="{Binding CreatedAt}"/>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,30,0,0">
+                    <Button Content="Сохранить настройки" Style="{StaticResource NeonButton}" Height="45" Width="200" Click="Save_Click"/>
+                    <Button Content="Сброс" Height="45" Width="120" Margin="15,0,0,0" Background="Transparent" Foreground="#888888" BorderBrush="#3D3D5C" BorderThickness="1" Click="Reset_Click"/>
+                    <TextBlock x:Name="SaveStatusText" Text="" Foreground="#00CEC9" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

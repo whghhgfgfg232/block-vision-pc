@@ -1,0 +1,348 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using BlockVision.App.Services;
+using BlockVision.Core.Configuration;
+using BlockVision.Core.Locking;
+using BlockVision.Core.Logging;
+using BlockVision.Core.Security;
+
+namespace BlockVision.App.Views;
+
+public partial class LockScreenWindow : Window
+{
+    private readonly KeyboardHook _keyboardHook;
+    private readonly Timer _clockTimer;
+    private readonly ConfigManager _config;
+    private readonly LockService _lockService;
+    private readonly AuditLogger _logger;
+    private bool _isUnlocking = false;
+
+    public LockScreenWindow()
+    {
+        InitializeComponent();
+
+        _config = App.ConfigManager!;
+        _lockService = App.LockService!;
+        _logger = App.Logger!;
+        _keyboardHook = new KeyboardHook
+        {
+            BlockAltTab = _config.Config.Locking.BlockAltTab,
+            BlockWindowsKeys = _config.Config.Locking.BlockWindowsKeys,
+            BlockCtrlEsc = true
+        };
+
+        // Подписка на события
+        _lockService.LockRequested += OnLockRequested;
+        _lockService.UnlockRequested += OnUnlockRequested;
+        _lockService.FailedAttempt += OnFailedAttempt;
+
+        // Таймер часов
+        _clockTimer = new Timer(_ => Dispatcher.Invoke(UpdateClock), null, 0, 1000);
+
+        Loaded += (_, _) => ApplyPersonalization();
+    }
+
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Сделать во весь экран на всех мониторах
+        if (_config.Config.Locking.CoverAllMonitors)
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            DisplayManager.MakeTopMost(handle);
+
+            // Растягиваем окно на все мониторы
+            var screens = DisplayManager.GetAllScreensBounds();
+            if (screens.Count > 1)
+            {
+                var minX = screens.Min(s => s.X);
+                var minY = screens.Min(s => s.Y);
+                var maxX = screens.Max(s => s.Right);
+                var maxY = screens.Max(s => s.Bottom);
+                Left = minX;
+                Top = minY;
+                Width = maxX - minX;
+                Height = maxY - minY;
+            }
+        }
+
+        // Блокировка клавиатуры
+        try { _keyboardHook.Install(); } catch { }
+
+        // Фокус
+        PasswordBox.Focus();
+        UpdateClock();
+        HardwareIdText.Text = $"ID: {CryptoHelper.GetHardwareId()}";
+
+        // Анимация появления
+        if (FindResource("FadeIn") is Storyboard sb) sb.Begin(this);
+
+        // Если есть причина блокировки из LockService
+        if (_lockService.IsLocked)
+        {
+            LockReasonText.Text = "Экран заблокирован системой безопасности";
+        }
+
+        // Курсор
+        if (_config.Config.Locking.HideCursor)
+            Cursor = Cursors.None;
+    }
+
+    private void ApplyPersonalization()
+    {
+        var p = _config.Config.Personalization;
+        WelcomeText.Text = p.WelcomeMessage;
+        LockReasonText.Text = p.LockMessage;
+
+        PasswordPlaceholder.Text = p.CustomLabels.GetValueOrDefault("PasswordPlaceholder", "Введите пароль");
+        KeyPlaceholder.Text = p.CustomLabels.GetValueOrDefault("KeyPlaceholder", "BVPC-XXXX-XXXX-XXXX-XXXX");
+        UnlockButton.Content = p.CustomLabels.GetValueOrDefault("UnlockButton", "Разблокировать");
+
+        // Цвета
+        try
+        {
+            var primary = (Color)ColorConverter.ConvertFromString(p.PrimaryColor);
+            var accent = (Color)ColorConverter.ConvertFromString(p.AccentColor);
+            Resources["PrimaryBrush"] = new SolidColorBrush(primary);
+            Resources["AccentBrush"] = new SolidColorBrush(accent);
+        }
+        catch { }
+
+        // Фон
+        if (p.BackgroundType == BackgroundType.SolidColor)
+        {
+            try
+            {
+                BackgroundGrid.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(p.BackgroundValue));
+            }
+            catch { }
+        }
+        else if (p.BackgroundType == BackgroundType.Image && !string.IsNullOrEmpty(p.CustomWallpaperPath) && System.IO.File.Exists(p.CustomWallpaperPath))
+        {
+            try
+            {
+                var img = new ImageBrush(new System.Windows.Media.Imaging.BitmapImage(new Uri(p.CustomWallpaperPath)));
+                img.Stretch = Stretch.UniformToFill;
+                img.Opacity = p.BackgroundOpacity;
+                BackgroundGrid.Background = img;
+            }
+            catch { }
+        }
+
+        BlurOverlay.Opacity = p.BlurBackground ? 0.7 : 0.4;
+    }
+
+    private void UpdateClock()
+    {
+        var now = DateTime.Now;
+        var fmtTime = _config.Config.Personalization.TimeFormat;
+        var fmtDate = _config.Config.Personalization.DateFormat;
+
+        try
+        {
+            TimeText.Text = now.ToString(fmtTime);
+            DateText.Text = now.ToString(fmtDate);
+        }
+        catch
+        {
+            TimeText.Text = now.ToString("HH:mm:ss");
+            DateText.Text = now.ToString("dd MMMM yyyy");
+        }
+
+        TimeText.Visibility = _config.Config.Locking.ShowClock ? Visibility.Visible : Visibility.Collapsed;
+        DateText.Visibility = _config.Config.Locking.ShowClock ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnLockRequested(object? sender, LockEventArgs e)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            LockReasonText.Text = e.Message;
+            
+            if (e.Reason == LockReason.Defender || e.Reason == LockReason.FileGuard)
+            {
+                ThreatInfoBorder.Visibility = Visibility.Visible;
+                ThreatDetailsText.Text = $"{e.TriggeredBy}: {e.Message}";
+                
+                DefenderBanner.Visibility = Visibility.Visible;
+                DefenderBannerText.Text = e.Message;
+            }
+
+            Show();
+            Activate();
+            Topmost = true;
+            PasswordBox.Focus();
+
+            // Звук блокировки
+            if (_config.Config.Locking.PlaySoundOnLock)
+            {
+                try { System.Media.SystemSounds.Hand.Play(); } catch { }
+            }
+        });
+    }
+
+    private void OnUnlockRequested(object? sender, UnlockEventArgs e)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            SuccessBorder.Visibility = Visibility.Visible;
+            SuccessText.Text = $"✓ Доступ разрешен через {(e.ViaPassword ? "пароль" : "ключ активации")}. Длительность блокировки: {e.LockDuration:mm\\:ss}";
+            MessageBorder.Visibility = Visibility.Collapsed;
+
+            _keyboardHook.Uninstall();
+            _clockTimer.Dispose();
+
+            // Задержка для красоты
+            Task.Delay(800).ContinueWith(_ => Dispatcher.Invoke(() =>
+            {
+                Hide();
+                // Не закрываем полностью - оставляем в трее
+                var mainWin = new SettingsWindow();
+                mainWin.Show();
+                Close();
+            }));
+        });
+    }
+
+    private void OnFailedAttempt(int attemptsLeft, TimeSpan lockout)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (lockout > TimeSpan.Zero)
+            {
+                ShowMessage($"Слишком много неудачных попыток. Повторите через {lockout:mm\\:ss}", true);
+            }
+            else
+            {
+                ShowMessage($"Неверный пароль или ключ", true);
+                AttemptsPanel.Visibility = _config.Config.Locking.ShowFailedAttempts ? Visibility.Visible : Visibility.Collapsed;
+                AttemptsText.Text = $"{_config.Config.Personalization.CustomLabels.GetValueOrDefault("AttemptsLeft", "Попыток осталось")}: {attemptsLeft}";
+
+                // Shake анимация
+                if (_config.Config.Personalization.Animations.EnableShakeOnError && FindResource("Shake") is Storyboard shake)
+                {
+                    shake.Begin(MainPanel);
+                }
+            }
+        });
+    }
+
+    private async void UnlockButton_Click(object sender, RoutedEventArgs e) => await TryUnlockAsync();
+
+    private async void PasswordBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+        if (e.Key == Key.Enter) await TryUnlockAsync();
+    }
+
+    private async void ActivationKeyBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        KeyPlaceholder.Visibility = string.IsNullOrEmpty(ActivationKeyBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+        if (e.Key == Key.Enter) await TryUnlockAsync();
+    }
+
+    private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async Task TryUnlockAsync()
+    {
+        if (_isUnlocking) return;
+        _isUnlocking = true;
+
+        LoadingGrid.Visibility = Visibility.Visible;
+        UnlockButton.IsEnabled = false;
+
+        try
+        {
+            string input = !string.IsNullOrWhiteSpace(PasswordBox.Text) ? PasswordBox.Text.Trim() : ActivationKeyBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                ShowMessage("Введите пароль или ключ активации", true);
+                return;
+            }
+
+            // Имитация задержки для защиты от брутфорса
+            await Task.Delay(300);
+
+            var (success, message) = _lockService.TryUnlock(input);
+
+            if (!success)
+            {
+                ShowMessage(message, true);
+                PasswordBox.Clear();
+                // Не очищаем ключ полностью, чтобы пользователь мог исправить
+            }
+            else
+            {
+                // Успех обрабатывается через событие OnUnlockRequested
+            }
+        }
+        finally
+        {
+            LoadingGrid.Visibility = Visibility.Collapsed;
+            UnlockButton.IsEnabled = true;
+            _isUnlocking = false;
+        }
+    }
+
+    private void ShowMessage(string msg, bool isError)
+    {
+        if (isError)
+        {
+            MessageBorder.Visibility = Visibility.Visible;
+            MessageText.Text = msg;
+            SuccessBorder.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            SuccessBorder.Visibility = Visibility.Visible;
+            SuccessText.Text = msg;
+            MessageBorder.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        // Блокируем Alt+F4 если настроено, иначе разрешаем только с паролем админа
+        if (e.Key == Key.F4 && (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            if (_config.Config.Locking.BlockAltTab) e.Handled = true;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            // Esc не разблокирует, только очищает поля
+            PasswordBox.Clear();
+            ActivationKeyBox.Clear();
+            e.Handled = true;
+        }
+    }
+
+    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // Нельзя закрыть пока заблокировано (защита)
+        if (_lockService.IsLocked && !_isUnlocking)
+        {
+            e.Cancel = true;
+            ShowMessage("Экран заблокирован. Введите пароль для выхода.", true);
+        }
+        else
+        {
+            _keyboardHook.Dispose();
+            _clockTimer.Dispose();
+        }
+    }
+
+    private void Settings_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Открыть настройки только после ввода пароля? Для демо открываем, но требуем повторный пароль внутри
+        var settings = new SettingsWindow();
+        settings.ShowDialog();
+    }
+}

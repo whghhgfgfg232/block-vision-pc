@@ -1,0 +1,54 @@
+# Build results
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.cache
+
+# Config & secrets (local)
+*.bvpc
+!src/**/Assets/*.bvpc
+config.bvpc
+vault.bvpc
+*.log
+logs/
+
+# NuGet
+packages/
+*.nupkg
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# User specific
+*.rsuser
+*.dbmdl
+*.jfm
+*.pfx
+*.key
+*.crt
+*.p12
+
+# Publish
+publish/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Defender test files
+eicar.com
+eicar.com.txt
+
+# Local dev
+local.settings.json
+secrets.json

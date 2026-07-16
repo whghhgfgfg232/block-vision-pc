@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>BlockVision.SDK</AssemblyName>
+    <RootNamespace>BlockVision.SDK</RootNamespace>
+    <Description>SDK для интеграции любых приложений с Block Vision PC (Defender, антивирусы, DLP)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BlockVision.Core\BlockVision.Core.csproj" />
+  </ItemGroup>
+
+</Project>

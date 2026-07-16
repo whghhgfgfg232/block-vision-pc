@@ -1,7 +1,9 @@
-using System.Windows;
 using Hardcodet.Wpf.TaskbarNotification;
 using BlockVision.App.Views;
 using BlockVision.Core.Locking;
+
+// Fix WPF vs WinForms Application ambiguity
+using WpfApplication = System.Windows.Application;
 
 namespace BlockVision.App.Services;
 
@@ -51,7 +53,7 @@ public class TrayIconService : IDisposable
             contextMenu.Items.Add(new System.Windows.Controls.Separator());
 
             var exitItem = new System.Windows.Controls.MenuItem { Header = "Выход" };
-            exitItem.Click += (s, e) => Application.Current.Shutdown();
+            exitItem.Click += (s, e) => WpfApplication.Current.Shutdown();
             contextMenu.Items.Add(exitItem);
 
             _trayIcon.ContextMenu = contextMenu;

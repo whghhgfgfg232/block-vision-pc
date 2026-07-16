@@ -3,6 +3,12 @@ using System.Windows.Controls;
 using BlockVision.Core.Configuration;
 using BlockVision.Core.Security;
 
+// WPF vs WinForms ambiguity fix
+using WpfMessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
+using MessageBoxResult = System.Windows.MessageBoxResult;
+
 namespace BlockVision.App.Views;
 
 public partial class SettingsWindow : Window
@@ -161,7 +167,7 @@ public partial class SettingsWindow : Window
         var newPass = NewPasswordBox.Text;
         if (string.IsNullOrWhiteSpace(newPass))
         {
-            MessageBox.Show("Введите новый пароль");
+            WpfMessageBox.Show("Введите новый пароль");
             return;
         }
 
@@ -170,7 +176,7 @@ public partial class SettingsWindow : Window
 
         if (strength == PasswordStrength.Weak)
         {
-            MessageBox.Show("Пароль слишком слабый! Добавьте заглавные буквы, цифры и символы.");
+            WpfMessageBox.Show("Пароль слишком слабый! Добавьте заглавные буквы, цифры и символы.");
             return;
         }
 
@@ -186,7 +192,7 @@ public partial class SettingsWindow : Window
             _config.Save();
         }
 
-        MessageBox.Show($"Пароль изменен! Сложность: {strength}", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+        WpfMessageBox.Show($"Пароль изменен! Сложность: {strength}", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
         NewPasswordBox.Clear();
     }
 
@@ -208,13 +214,13 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+            WpfMessageBox.Show($"Ошибка сохранения: {ex.Message}");
         }
     }
 
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
-        if (MessageBox.Show("Сбросить к настройкам по умолчанию?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+        if (WpfMessageBox.Show("Сбросить к настройкам по умолчанию?", "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
         {
             _config.Config = DefaultConfigs.CreateDefault();
             _config.Config.HardwareId = CryptoHelper.GetHardwareId();
@@ -286,7 +292,7 @@ public partial class SettingsWindow : Window
         {
             var logs = App.Logger?.GetRecent(1000) ?? new();
             System.IO.File.WriteAllText(save.FileName, System.Text.Json.JsonSerializer.Serialize(logs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-            MessageBox.Show("Логи экспортированы");
+            WpfMessageBox.Show("Логи экспортированы");
         }
     }
 
@@ -304,7 +310,7 @@ public partial class SettingsWindow : Window
         var secret = VaultSecretBox.Text;
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(secret))
         {
-            MessageBox.Show("Заполните имя и секрет");
+            WpfMessageBox.Show("Заполните имя и секрет");
             return;
         }
 
@@ -327,7 +333,7 @@ public partial class SettingsWindow : Window
         var path = NewFolderBox.Text;
         if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path))
         {
-            MessageBox.Show("Папка не существует");
+            WpfMessageBox.Show("Папка не существует");
             return;
         }
 

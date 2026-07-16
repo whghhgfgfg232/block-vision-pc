@@ -6,9 +6,14 @@ using BlockVision.Core.Logging;
 using BlockVision.Core.Locking;
 using BlockVision.Core.Security;
 
+// Resolve WPF vs WinForms ambiguity
+using WpfApplication = System.Windows.Application;
+using WpfStartupEventArgs = System.Windows.StartupEventArgs;
+using WpfExitEventArgs = System.Windows.ExitEventArgs;
+
 namespace BlockVision.App;
 
-public partial class App : Application
+public partial class App : WpfApplication
 {
     public static ConfigManager? ConfigManager { get; private set; }
     public static LockService? LockService { get; private set; }
@@ -19,7 +24,7 @@ public partial class App : Application
     public static ActivationKeyManager? KeyManager { get; private set; }
     public static TrayIconService? TrayIcon { get; private set; }
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override void OnStartup(WpfStartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -98,7 +103,7 @@ public partial class App : Application
         }
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    protected override void OnExit(WpfExitEventArgs e)
     {
         Logger?.Log(AuditEventType.ServiceStopped, "BlockVisionPC App завершен", "App");
         TrayIcon?.Dispose();

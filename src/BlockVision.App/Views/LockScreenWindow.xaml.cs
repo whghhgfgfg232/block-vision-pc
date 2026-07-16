@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -9,6 +8,14 @@ using BlockVision.Core.Configuration;
 using BlockVision.Core.Locking;
 using BlockVision.Core.Logging;
 using BlockVision.Core.Security;
+
+// Fix WPF vs WinForms ambiguity (both UseWPF and UseWindowsForms enabled)
+using System.Windows.Input;
+using Timer = System.Threading.Timer;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using Cursors = System.Windows.Input.Cursors;
+using WpfMessageBox = System.Windows.MessageBox;
 
 namespace BlockVision.App.Views;
 

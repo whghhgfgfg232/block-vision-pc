@@ -16,7 +16,7 @@ public class ConfigManager
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    public AppConfig Config { get; private set; }
+    public AppConfig Config { get; set; }
 
     public ConfigManager(string configPath, bool useEncryption = true, string encryptionKey = "BlockVision_DefaultKey_ChangeMe!")
     {

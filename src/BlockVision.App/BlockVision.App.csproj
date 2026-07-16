@@ -29,4 +29,10 @@
     <Resource Include="Assets\**\*.*" />
   </ItemGroup>
 
+  <!-- Убираем глобальные using для WinForms чтобы избежать конфликтов WPF vs WinForms (Application, Button, Color, Timer и т.д.) -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
 </Project>

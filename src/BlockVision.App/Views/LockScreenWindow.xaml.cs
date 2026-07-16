@@ -16,6 +16,9 @@ using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using Cursors = System.Windows.Input.Cursors;
 using WpfMessageBox = System.Windows.MessageBox;
+using MediaColor = System.Windows.Media.Color;
+using MediaColorConverter = System.Windows.Media.ColorConverter;
+using MediaSolidColorBrush = System.Windows.Media.SolidColorBrush;
 
 namespace BlockVision.App.Views;
 
@@ -108,13 +111,13 @@ public partial class LockScreenWindow : Window
         KeyPlaceholder.Text = p.CustomLabels.GetValueOrDefault("KeyPlaceholder", "BVPC-XXXX-XXXX-XXXX-XXXX");
         UnlockButton.Content = p.CustomLabels.GetValueOrDefault("UnlockButton", "Разблокировать");
 
-        // Цвета
+        // Цвета - используем MediaColor чтобы избежать конфликта с System.Drawing.Color
         try
         {
-            var primary = (Color)ColorConverter.ConvertFromString(p.PrimaryColor);
-            var accent = (Color)ColorConverter.ConvertFromString(p.AccentColor);
-            Resources["PrimaryBrush"] = new SolidColorBrush(primary);
-            Resources["AccentBrush"] = new SolidColorBrush(accent);
+            var primary = (MediaColor)MediaColorConverter.ConvertFromString(p.PrimaryColor);
+            var accent = (MediaColor)MediaColorConverter.ConvertFromString(p.AccentColor);
+            Resources["PrimaryBrush"] = new MediaSolidColorBrush(primary);
+            Resources["AccentBrush"] = new MediaSolidColorBrush(accent);
         }
         catch { }
 
@@ -123,7 +126,7 @@ public partial class LockScreenWindow : Window
         {
             try
             {
-                BackgroundGrid.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(p.BackgroundValue));
+                BackgroundGrid.Background = new MediaSolidColorBrush((MediaColor)MediaColorConverter.ConvertFromString(p.BackgroundValue));
             }
             catch { }
         }

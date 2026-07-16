@@ -8,6 +8,7 @@ using WpfMessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 using MessageBoxImage = System.Windows.MessageBoxImage;
 using MessageBoxResult = System.Windows.MessageBoxResult;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace BlockVision.App.Views;
 
@@ -129,7 +130,7 @@ public partial class SettingsWindow : Window
 
     private void Menu_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button btn) return;
+        if (sender is not WpfButton btn) return;
         var tag = btn.Tag?.ToString();
 
         // Скрыть все

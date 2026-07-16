@@ -10,7 +10,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>BlockVisionPC</AssemblyName>
     <RootNamespace>BlockVision.App</RootNamespace>
-    <ApplicationIcon>Assets\shield.ico</ApplicationIcon>
     <Version>1.0.0</Version>
     <Authors>BlockVision Team</Authors>
     <Description>Block Vision PC - Система защиты экрана с активацией для любых приложений</Description>

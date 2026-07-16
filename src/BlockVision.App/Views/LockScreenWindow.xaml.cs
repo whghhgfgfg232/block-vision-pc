@@ -147,11 +147,21 @@ public partial class LockScreenWindow : Window
 
     private void PasswordBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        // Разрешаем фокус по клику
+        // Разрешаем фокус по клику - ИСПРАВЛЕНО: не блокируем если уже в фокусе, позволяем выделить текст
         if (!PasswordBox.IsKeyboardFocused)
         {
             e.Handled = true;
             FocusPasswordBox();
+        }
+    }
+
+    private void ActivationKeyBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Аналогично для поля ключа активации - позволяем фокус
+        if (!ActivationKeyBox.IsKeyboardFocused)
+        {
+            e.Handled = true;
+            FocusActivationKeyBox();
         }
     }
 
@@ -177,12 +187,59 @@ public partial class LockScreenWindow : Window
 
     private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        // Не теряем фокус пока заблокировано - автоматически возвращаем
+        UpdatePlaceholders();
+        // ИСПРАВЛЕНО: не форсируем фокус обратно, если пользователь пытается перейти в поле ключа активации или на кнопку
+        // Старая логика вызывала дикое раздражение - невозможно было ввести ключ активации
+        var focused = Keyboard.FocusedElement as DependencyObject;
+        if (focused == ActivationKeyBox || focused == UnlockButton || IsAncestorOf(ActivationKeyBox, focused) || IsAncestorOf(UnlockButton, focused))
+        {
+            // Пользователь перешел в поле ключа или кнопку - разрешаем
+            return;
+        }
+
+        // Если фокус ушел в никуда (например клик по пустому месту) и экран заблокирован - возвращаем в пароль через небольшую задержку
+        // Но только если оба поля пустые или фокус не в ключе
         if (_lockService.IsLocked && !_isUnlocking)
         {
-            Dispatcher.BeginInvoke(new Action(() => FocusPasswordBox()), System.Windows.Threading.DispatcherPriority.Background);
+            if (string.IsNullOrWhiteSpace(PasswordBox.Text) && string.IsNullOrWhiteSpace(ActivationKeyBox.Text))
+            {
+                // Если оба пустые и фокус потерян полностью - вернем в пароль
+                if (focused == null || (focused != PasswordBox && focused != ActivationKeyBox))
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // Проверяем еще раз что пользователь не перешел в ключ
+                        if (!ActivationKeyBox.IsKeyboardFocused && !UnlockButton.IsKeyboardFocused)
+                            FocusPasswordBox();
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
+            }
         }
-        UpdatePlaceholders();
+    }
+
+    private static bool IsAncestorOf(DependencyObject? parent, DependencyObject? child)
+    {
+        if (parent == null || child == null) return false;
+        var current = child;
+        while (current != null)
+        {
+            if (current == parent) return true;
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+        }
+        return false;
+    }
+
+    private void FocusActivationKeyBox()
+    {
+        try
+        {
+            ActivationKeyBox.Focusable = true;
+            ActivationKeyBox.IsEnabled = true;
+            ActivationKeyBox.Focus();
+            Keyboard.Focus(ActivationKeyBox);
+            ActivationKeyBox.CaretIndex = ActivationKeyBox.Text.Length;
+        }
+        catch { }
     }
 
     private void ApplyPersonalization()
@@ -353,9 +410,27 @@ public partial class LockScreenWindow : Window
 
         try
         {
-            string input = !string.IsNullOrWhiteSpace(PasswordBox.Text) ? PasswordBox.Text.Trim() : ActivationKeyBox.Text.Trim();
+            string passwordInput = PasswordBox.Text.Trim();
+            string keyInput = ActivationKeyBox.Text.Trim();
 
-            if (string.IsNullOrWhiteSpace(input))
+            // Определяем какое поле в фокусе чтобы понять что пользователь хочет использовать
+            bool isKeyFocused = ActivationKeyBox.IsKeyboardFocused;
+            bool isPasswordFocused = PasswordBox.IsKeyboardFocused;
+
+            // Собираем список попыток в порядке приоритета: сначала то поле где фокус, потом остальное
+            var attempts = new List<string>();
+            if (isKeyFocused && !string.IsNullOrWhiteSpace(keyInput))
+                attempts.Add(keyInput);
+            if (isPasswordFocused && !string.IsNullOrWhiteSpace(passwordInput))
+                attempts.Add(passwordInput);
+
+            // Добавляем остальные непустые если еще не добавлены
+            if (!attempts.Contains(passwordInput) && !string.IsNullOrWhiteSpace(passwordInput))
+                attempts.Add(passwordInput);
+            if (!attempts.Contains(keyInput) && !string.IsNullOrWhiteSpace(keyInput))
+                attempts.Add(keyInput);
+
+            if (attempts.Count == 0)
             {
                 ShowMessage("Введите пароль или ключ активации", true);
                 return;
@@ -364,13 +439,35 @@ public partial class LockScreenWindow : Window
             // Имитация задержки для защиты от брутфорса
             await Task.Delay(300);
 
-            var (success, message) = _lockService.TryUnlock(input);
+            bool anySuccess = false;
+            string lastMessage = "";
 
-            if (!success)
+            foreach (var input in attempts)
             {
-                ShowMessage(message, true);
-                PasswordBox.Clear();
-                // Не очищаем ключ полностью, чтобы пользователь мог исправить
+                var (success, message) = _lockService.TryUnlock(input);
+                lastMessage = message;
+                if (success)
+                {
+                    anySuccess = true;
+                    break;
+                }
+            }
+
+            if (!anySuccess)
+            {
+                ShowMessage(lastMessage, true);
+                // Очищаем только неверное поле, оставляем другое
+                // Если была попытка пароля и она не удалась, но ключ тоже был введен и не удался - очищаем оба
+                // Если вводили только ключ - очищаем только ключ, чтобы можно было исправить опечатку? Нет, лучше не очищать ключ полностью, а показать ошибку
+                // Для удобства: если вводили пароль - очищаем пароль, если только ключ - не очищаем чтобы исправить, а подсвечиваем
+                if (!string.IsNullOrWhiteSpace(passwordInput) && attempts.Contains(passwordInput))
+                    PasswordBox.Clear();
+
+                // Фокусируем обратно в поле где была ошибка
+                if (isKeyFocused)
+                    FocusActivationKeyBox();
+                else
+                    FocusPasswordBox();
             }
             else
             {

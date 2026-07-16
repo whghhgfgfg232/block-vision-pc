@@ -119,6 +119,7 @@
                                      TextChanged="ActivationKeyBox_TextChanged"
                                      GotFocus="ActivationKeyBox_GotFocus"
                                      LostFocus="ActivationKeyBox_LostFocus"
+                                     PreviewMouseDown="ActivationKeyBox_PreviewMouseDown"
                                      FontFamily="Consolas"
                                      Background="#2D2D44"
                                      Foreground="White"

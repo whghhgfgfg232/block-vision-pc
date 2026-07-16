@@ -85,11 +85,18 @@ public class BlockVisionClient
             }
             else
             {
-                var response = await SendPipeCommandWithResponseAsync(new { Action = "status", Source = _sourceApp, Token = _apiToken }, ct);
-                if (response.HasValue && response.Value.TryGetProperty("Data", out var data))
+                var responseOpt = await SendPipeCommandWithResponseAsync(new { Action = "status", Source = _sourceApp, Token = _apiToken }, ct);
+                if (responseOpt.HasValue)
                 {
-                    var locked = data.TryGetProperty("locked", out var lockedProp) && lockedProp.GetBoolean();
-                    return (locked, response.Value.TryGetProperty("Message", out var msg) ? msg.GetString() ?? "" : "");
+                    var response = responseOpt.Value;
+                    if (response.ValueKind != JsonValueKind.Undefined && response.TryGetProperty("Data", out var data))
+                    {
+                        var locked = data.ValueKind != JsonValueKind.Undefined 
+                            && data.TryGetProperty("locked", out var lockedProp) 
+                            && lockedProp.GetBoolean();
+                        var message = response.TryGetProperty("Message", out var msg) ? msg.GetString() ?? "" : "";
+                        return (locked, message);
+                    }
                 }
             }
         }

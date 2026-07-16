@@ -79,12 +79,21 @@ public partial class LockScreenWindow : Window
             }
         }
 
-        // Блокировка клавиатуры
-        try { _keyboardHook.Install(); } catch { }
+        // Блокировка клавиатуры - только если не первый запуск без пароля
+        if (!string.IsNullOrWhiteSpace(_config.Config.AdminPasswordHash))
+        {
+            try { _keyboardHook.Install(); } catch { }
+        }
 
-        // Фокус
-        PasswordBox.Focus();
+        // Фокус - КРИТИЧНО для ввода с клавиатуры
+        // Используем Dispatcher с приоритетом Input чтобы гарантировать фокус после всех Loaded событий
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            FocusPasswordBox();
+        }), System.Windows.Threading.DispatcherPriority.Input);
+
         UpdateClock();
+        UpdatePlaceholders();
         HardwareIdText.Text = $"ID: {CryptoHelper.GetHardwareId()}";
 
         // Анимация появления
@@ -95,10 +104,85 @@ public partial class LockScreenWindow : Window
         {
             LockReasonText.Text = "Экран заблокирован системой безопасности";
         }
+        else if (string.IsNullOrWhiteSpace(_config.Config.AdminPasswordHash))
+        {
+            // Первый запуск без пароля - подсказка
+            LockReasonText.Text = "Первый запуск: установите пароль в настройках";
+            ShowMessage("Пароль не установлен. Нажмите 'Настройки' внизу и задайте пароль администратора.", false);
+        }
 
         // Курсор
         if (_config.Config.Locking.HideCursor)
             Cursor = Cursors.None;
+    }
+
+    private void FocusPasswordBox()
+    {
+        try
+        {
+            PasswordBox.Focusable = true;
+            PasswordBox.IsEnabled = true;
+            PasswordBox.Focus();
+            Keyboard.Focus(PasswordBox);
+            PasswordBox.CaretIndex = PasswordBox.Text.Length;
+            PasswordBox.SelectAll();
+        }
+        catch { }
+    }
+
+    private void UpdatePlaceholders()
+    {
+        PasswordPlaceholder.Visibility = string.IsNullOrEmpty(PasswordBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+        KeyPlaceholder.Visibility = string.IsNullOrEmpty(ActivationKeyBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void RootGrid_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Клик по фону - фокусируем пароль
+        if (e.OriginalSource is Grid || e.OriginalSource is Border || e.OriginalSource is StackPanel)
+        {
+            FocusPasswordBox();
+        }
+    }
+
+    private void PasswordBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Разрешаем фокус по клику
+        if (!PasswordBox.IsKeyboardFocused)
+        {
+            e.Handled = true;
+            FocusPasswordBox();
+        }
+    }
+
+    private void PasswordBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdatePlaceholders();
+    }
+
+    private void ActivationKeyBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdatePlaceholders();
+    }
+
+    private void ActivationKeyBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        UpdatePlaceholders();
+    }
+
+    private void ActivationKeyBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        UpdatePlaceholders();
+    }
+
+    private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        // Не теряем фокус пока заблокировано - автоматически возвращаем
+        if (_lockService.IsLocked && !_isUnlocking)
+        {
+            Dispatcher.BeginInvoke(new Action(() => FocusPasswordBox()), System.Windows.Threading.DispatcherPriority.Background);
+        }
+        UpdatePlaceholders();
     }
 
     private void ApplyPersonalization()

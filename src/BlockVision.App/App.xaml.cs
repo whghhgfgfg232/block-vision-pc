@@ -1,5 +1,6 @@
 using System.Windows;
 using BlockVision.App.Services;
+using BlockVision.App.Views;
 using BlockVision.Core.Configuration;
 using BlockVision.Core.Integration;
 using BlockVision.Core.Logging;
@@ -24,6 +25,8 @@ public partial class App : WpfApplication
     public static ActivationKeyManager? KeyManager { get; private set; }
     public static TrayIconService? TrayIcon { get; private set; }
 
+    private LockScreenWindow? _lockWindow;
+
     protected override void OnStartup(WpfStartupEventArgs e)
     {
         base.OnStartup(e);
@@ -36,6 +39,24 @@ public partial class App : WpfApplication
         Logger = new AuditLogger();
         KeyManager = new ActivationKeyManager(ConfigManager.Config.HardwareId + "_SecretSalt_BVPC");
         LockService = new LockService(ConfigManager, Logger, KeyManager);
+
+        // Подписка на событие блокировки ДО обработки аргументов, чтобы показать окно если нужно
+        LockService.LockRequested += (s, args) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_lockWindow == null || !_lockWindow.IsVisible)
+                {
+                    _lockWindow = new LockScreenWindow();
+                    _lockWindow.Show();
+                }
+            });
+        };
+
+        LockService.UnlockRequested += (s, args) =>
+        {
+            // Закрытие lock окна обрабатывается внутри самого LockScreenWindow
+        };
 
         // Авто-блокировка при старте если настроено
         if (ConfigManager.Config.Locking.LockOnStartup)
@@ -81,6 +102,40 @@ public partial class App : WpfApplication
             Logger?.Log(AuditEventType.TamperDetected, $"Unhandled exception: {args.Exception.Message}", "App");
             args.Handled = true;
         };
+
+        // === ЛОГИКА ПОКАЗА ОКОН ===
+        // Если первый запуск или пароль не установлен - сразу показываем настройки для установки пароля
+        // Это исправляет deadlock когда LockScreen требует пароль которого еще нет
+        if (ConfigManager.Config.IsFirstRun || string.IsNullOrWhiteSpace(ConfigManager.Config.AdminPasswordHash))
+        {
+            Logger.Log(AuditEventType.ServiceStarted, "Первый запуск - показываем окно настройки пароля", "FirstRun");
+            var settings = new SettingsWindow();
+            settings.Show();
+            
+            // Для первого запуска не показываем блокировку
+            if (ConfigManager.Config.IsFirstRun)
+            {
+                ConfigManager.Config.IsFirstRun = false;
+                ConfigManager.Save();
+            }
+        }
+        else if (LockService.IsLocked)
+        {
+            // Если заблокировано (по LockOnStartup или по внешнему триггеру) - показываем LockScreen
+            _lockWindow = new LockScreenWindow();
+            _lockWindow.Show();
+        }
+        else
+        {
+            // Обычный запуск без блокировки - показываем настройки (или можно ничего не показывать и оставить только трей)
+            // Для удобства первый раз показываем настройки, потом можно свернуть в трей
+            bool minimized = e.Args.Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase));
+            if (!minimized)
+            {
+                var settings = new SettingsWindow();
+                settings.Show();
+            }
+        }
     }
 
     private void HandleCommandLineArgs(string[] args)

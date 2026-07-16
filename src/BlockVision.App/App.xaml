@@ -1,7 +1,6 @@
 <Application x:Class="BlockVision.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="Views/LockScreenWindow.xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <!-- Тема по умолчанию - Dark + Neon -->
         <SolidColorBrush x:Key="PrimaryBrush" Color="#6C5CE7"/>

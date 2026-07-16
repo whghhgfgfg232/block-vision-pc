@@ -65,7 +65,7 @@ public class BlockVisionClient
     }
 
     /// <summary>
-    /// Проверить статус блокировки
+    /// Проверить статус блокировки - полностью без nullable JsonElement, чтобы избежать CS1061
     /// </summary>
     public async Task<(bool locked, string message)> GetStatusAsync(CancellationToken ct = default)
     {
@@ -80,24 +80,40 @@ public class BlockVisionClient
                 var resp = await http.GetAsync($"http://127.0.0.1:{_httpPort}/status", ct);
                 var json = await resp.Content.ReadAsStringAsync(ct);
                 var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-                var locked = data?["locked"].GetBoolean() ?? false;
+                var locked = data != null && data.TryGetValue("locked", out var lockedEl) && lockedEl.GetBoolean();
                 return (locked, locked ? "Locked" : "Unlocked");
             }
             else
             {
-                var responseOpt = await SendPipeCommandWithResponseAsync(new { Action = "status", Source = _sourceApp, Token = _apiToken }, ct);
-                if (responseOpt.HasValue)
+                // Non-nullable JsonElement - возвращает default если ошибка
+                var response = await SendPipeCommandWithResponseAsync(new { Action = "status", Source = _sourceApp, Token = _apiToken }, ct);
+
+                if (response.ValueKind == JsonValueKind.Undefined || response.ValueKind == JsonValueKind.Null)
+                    return (false, "No response");
+
+                if (response.TryGetProperty("Data", out var data) && data.ValueKind == JsonValueKind.Object)
                 {
-                    var response = responseOpt.Value;
-                    if (response.ValueKind != JsonValueKind.Undefined && response.TryGetProperty("Data", out var data))
-                    {
-                        var locked = data.ValueKind != JsonValueKind.Undefined 
-                            && data.TryGetProperty("locked", out var lockedProp) 
-                            && lockedProp.GetBoolean();
-                        var message = response.TryGetProperty("Message", out var msg) ? msg.GetString() ?? "" : "";
-                        return (locked, message);
-                    }
+                    bool locked = false;
+                    if (data.TryGetProperty("locked", out var lockedProp) && lockedProp.ValueKind == JsonValueKind.True)
+                        locked = true;
+                    else if (data.TryGetProperty("locked", out var lockedProp2) && lockedProp2.ValueKind == JsonValueKind.False)
+                        locked = false;
+                    else if (data.TryGetProperty("locked", out var lockedProp3))
+                        locked = lockedProp3.GetBoolean();
+
+                    string message = "";
+                    if (response.TryGetProperty("Message", out var msg) && msg.ValueKind == JsonValueKind.String)
+                        message = msg.GetString() ?? "";
+
+                    return (locked, message);
                 }
+
+                // Fallback: если нет Data, пробуем проверить поле locked прямо в корне
+                if (response.TryGetProperty("locked", out var rootLocked))
+                    return (rootLocked.GetBoolean(), "");
+
+                if (response.TryGetProperty("Message", out var rootMsg))
+                    return (false, rootMsg.GetString() ?? "");
             }
         }
         catch { }
@@ -130,7 +146,8 @@ public class BlockVisionClient
         }
     }
 
-    private async Task<JsonElement?> SendPipeCommandWithResponseAsync(object cmd, CancellationToken ct)
+    // Возвращает НЕ nullable JsonElement, default = Undefined, чтобы избежать CS1061 с JsonElement?
+    private async Task<JsonElement> SendPipeCommandWithResponseAsync(object cmd, CancellationToken ct)
     {
         try
         {
@@ -143,10 +160,11 @@ public class BlockVisionClient
 
             using var reader = new StreamReader(client, Encoding.UTF8);
             var line = await reader.ReadLineAsync();
-            if (line == null) return null;
+            if (string.IsNullOrEmpty(line)) return default;
+
             return JsonSerializer.Deserialize<JsonElement>(line);
         }
-        catch { return null; }
+        catch { return default; }
     }
 
     private async Task<bool> SendHttpAsync(string endpoint, object cmd, CancellationToken ct)

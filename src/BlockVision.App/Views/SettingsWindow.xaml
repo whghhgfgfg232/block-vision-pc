@@ -131,14 +131,13 @@
                     <TextBlock Text="Настройки блокировки" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
                     <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
                         <StackPanel>
+                            <TextBlock Text="Основные" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
                             <CheckBox x:Name="LockOnStartupCheck" Content="Блокировать при запуске системы" Foreground="#CCCCCC" Margin="0,0,0,10"/>
                             <CheckBox x:Name="LockOnIdleCheck" Content="Блокировать при простое" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
                             <StackPanel Orientation="Horizontal" Margin="20,0,0,10">
                                 <TextBlock Text="Минут простоя:" Foreground="#888888" VerticalAlignment="Center"/>
                                 <TextBox x:Name="IdleMinutesBox" Width="60" Margin="10,0,0,0" Background="#2D2D44" Foreground="White" Text="5"/>
                             </StackPanel>
-                            <CheckBox x:Name="BlockTaskManagerCheck" Content="Блокировать Диспетчер задач" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
-                            <CheckBox x:Name="BlockAltTabCheck" Content="Блокировать Alt+Tab, Win клавиши" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
                             <CheckBox x:Name="CoverAllMonitorsCheck" Content="Покрывать все мониторы" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
                             <CheckBox x:Name="PlaySoundCheck" Content="Звук при блокировке" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
                             <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
@@ -147,6 +146,39 @@
                                 <TextBlock Text="Минут блока:" Foreground="#888888" VerticalAlignment="Center"/>
                                 <TextBox x:Name="LockoutMinutesBox" Width="60" Margin="10,0,0,0" Background="#2D2D44" Foreground="White" Text="10"/>
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1E1E2F" CornerRadius="12" Padding="20" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="🛡️ Защита от закрытия (блокировка проводника)" Foreground="#FF7675" FontWeight="Bold" Margin="0,0,0,10"/>
+                            <TextBlock Text="Чтобы никто не мог закрыть программу через проводник, панель задач или диспетчер задач" Foreground="#888888" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,15"/>
+                            
+                            <CheckBox x:Name="BlockTaskManagerCheck" Content="Блокировать горячие клавиши диспетчера (Ctrl+Shift+Esc, Ctrl+Esc)" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="BlockTaskManagerWindowCheck" Content="Автоматически закрывать окно диспетчера задач" Foreground="#00CEC9" Margin="0,0,0,10" IsChecked="True" FontWeight="Bold"/>
+                            <CheckBox x:Name="BlockAltTabCheck" Content="Блокировать Alt+Tab, Win клавиши, Alt+Esc" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            <CheckBox x:Name="BlockExplorerHotkeysCheck" Content="Блокировать проводник горячие клавиши (Win+E, Win+R, Win+D, Win+M)" Foreground="#CCCCCC" Margin="0,0,0,10" IsChecked="True"/>
+                            
+                            <Border Background="#2D2D44" CornerRadius="8" Padding="12" Margin="0,15,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="🔒 Панель задач и проводник" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                    <CheckBox x:Name="HideTaskbarCheck" Content="Скрывать панель задач при блокировке (рекомендуется)" Foreground="#CCCCCC" Margin="0,0,0,8" IsChecked="True"/>
+                                    <CheckBox x:Name="DisableTaskbarContextMenuCheck" Content="Блокировать контекстное меню панели задач" Foreground="#888888" Margin="0,0,0,8" IsChecked="True"/>
+                                    <CheckBox x:Name="PreventWindowDeactivationCheck" Content="Не давать окну потерять фокус / быть свернутым" Foreground="#CCCCCC" Margin="0,0,0,8" IsChecked="True"/>
+                                    <CheckBox x:Name="KillExplorerCheck" Content="Убивать explorer.exe при блокировке (режим киоска - агрессивно!)" Foreground="#FF7675" Margin="0,0,0,8"/>
+                                    <TextBlock Text="⚠️ В режиме киоска рабочий стол и панель задач исчезнут, останется только экран блокировки. Проводник восстановится при разблокировке." Foreground="#666688" FontSize="10" TextWrapping="Wrap" Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#332D2D44" CornerRadius="8" Padding="12" Margin="0,10,0,0" BorderBrush="#44FF7675" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="🔥 Киоск и защита процесса" Foreground="#FF7675" FontWeight="Bold" Margin="0,0,0,10"/>
+                                    <CheckBox x:Name="EnableKioskModeCheck" Content="Включить полный киоск режим (скрыть всё, блокировать всё)" Foreground="#FF7675" Margin="0,0,0,8" FontWeight="Bold"/>
+                                    <CheckBox x:Name="EnableProcessProtectionCheck" Content="Защита процесса от завершения (ACL, повышенный приоритет)" Foreground="#CCCCCC" Margin="0,0,0,8" IsChecked="True"/>
+                                    <CheckBox x:Name="EnableCriticalProtectionCheck" Content="Критический процесс (BSOD при убийстве - ОПАСНО! Требует админа!)" Foreground="#FF0000" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Критический режим: если кто-то попытается убить процесс через Task Manager / Process Explorer, система выдаст синий экран CRITICAL_PROCESS_DIED. Используйте только в высокозащищенных киосках!" Foreground="#FF4444" FontSize="9" TextWrapping="Wrap" Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
                 </StackPanel>

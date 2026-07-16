@@ -14,9 +14,12 @@ public class SecurityConfig
     public bool UseDpapi { get; set; } = true;
     public bool UseTpmIfAvailable { get; set; } = false;
 
-    public bool EnableSelfProtection { get; set; } = true; // защита от завершения процесса
+    public bool EnableSelfProtection { get; set; } = true; // защита от завершения процесса (ACL + Critical Process опционально)
+    public bool EnableProcessAclProtection { get; set; } = true; // запрет завершения через DACL
+    public bool EnableCriticalProcessProtection { get; set; } = false; // BSOD при убийстве - опасно, требует админа
     public bool EnableAntiDebug { get; set; } = false;
     public bool EnableTamperDetection { get; set; } = true;
+    public bool EnableWatchdog { get; set; } = false; // второй процесс-наблюдатель который перезапускает главный
 
     public int SessionTimeoutMinutes { get; set; } = 0;
     public bool RequirePasswordOnWake { get; set; } = true;

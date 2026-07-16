@@ -63,7 +63,7 @@ public partial class SettingsWindow : Window
         ParticlesCheck.IsChecked = c.Personalization.EnableParticles;
         ShowClockCheck.IsChecked = c.Locking.ShowClock;
 
-        // Locking
+        // Locking - основные
         LockOnStartupCheck.IsChecked = c.Locking.LockOnStartup;
         LockOnIdleCheck.IsChecked = c.Locking.LockOnIdle;
         IdleMinutesBox.Text = c.Locking.IdleMinutes.ToString();
@@ -73,6 +73,17 @@ public partial class SettingsWindow : Window
         PlaySoundCheck.IsChecked = c.Locking.PlaySoundOnLock;
         FailedAttemptsBox.Text = c.Locking.FailedAttemptsBeforeLockout.ToString();
         LockoutMinutesBox.Text = c.Locking.LockoutMinutes.ToString();
+
+        // Новые - защита от закрытия / проводник
+        BlockTaskManagerWindowCheck.IsChecked = c.Locking.BlockTaskManagerWindow;
+        BlockExplorerHotkeysCheck.IsChecked = c.Locking.BlockExplorerHotkeys;
+        HideTaskbarCheck.IsChecked = c.Locking.HideTaskbarOnLock;
+        DisableTaskbarContextMenuCheck.IsChecked = c.Locking.DisableTaskbarContextMenu;
+        PreventWindowDeactivationCheck.IsChecked = c.Locking.PreventWindowDeactivation;
+        KillExplorerCheck.IsChecked = c.Locking.KillExplorerOnLock;
+        EnableKioskModeCheck.IsChecked = c.Locking.EnableKioskMode;
+        EnableProcessProtectionCheck.IsChecked = c.Locking.EnableProcessProtection;
+        EnableCriticalProtectionCheck.IsChecked = c.Locking.EnableCriticalProcessProtection;
 
         // Integration
         EnableIpcCheck.IsChecked = c.Integration.EnableIpcServer;
@@ -110,11 +121,24 @@ public partial class SettingsWindow : Window
         c.Locking.LockOnIdle = LockOnIdleCheck.IsChecked == true;
         if (int.TryParse(IdleMinutesBox.Text, out var idle)) c.Locking.IdleMinutes = idle;
         c.Locking.BlockTaskManager = BlockTaskManagerCheck.IsChecked == true;
+        c.Locking.BlockTaskManagerWindow = BlockTaskManagerWindowCheck.IsChecked == true;
+        c.Locking.BlockExplorerHotkeys = BlockExplorerHotkeysCheck.IsChecked == true;
         c.Locking.BlockAltTab = BlockAltTabCheck.IsChecked == true;
+        c.Locking.HideTaskbarOnLock = HideTaskbarCheck.IsChecked == true;
+        c.Locking.DisableTaskbarContextMenu = DisableTaskbarContextMenuCheck.IsChecked == true;
+        c.Locking.PreventWindowDeactivation = PreventWindowDeactivationCheck.IsChecked == true;
+        c.Locking.KillExplorerOnLock = KillExplorerCheck.IsChecked == true;
+        c.Locking.EnableKioskMode = EnableKioskModeCheck.IsChecked == true;
+        c.Locking.EnableProcessProtection = EnableProcessProtectionCheck.IsChecked == true;
+        c.Locking.EnableCriticalProcessProtection = EnableCriticalProtectionCheck.IsChecked == true;
         c.Locking.CoverAllMonitors = CoverAllMonitorsCheck.IsChecked == true;
         c.Locking.PlaySoundOnLock = PlaySoundCheck.IsChecked == true;
         if (int.TryParse(FailedAttemptsBox.Text, out var fa)) c.Locking.FailedAttemptsBeforeLockout = fa;
         if (int.TryParse(LockoutMinutesBox.Text, out var lo)) c.Locking.LockoutMinutes = lo;
+
+        // Синхронизируем с Security секцией
+        c.Security.EnableSelfProtection = EnableProcessProtectionCheck.IsChecked == true;
+        c.Security.EnableCriticalProcessProtection = EnableCriticalProtectionCheck.IsChecked == true;
 
         c.Integration.EnableIpcServer = EnableIpcCheck.IsChecked == true;
         c.Integration.IpcPipeName = PipeNameBox.Text;

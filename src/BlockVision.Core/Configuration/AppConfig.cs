@@ -30,11 +30,24 @@ public class LockingConfig
     public string? UsbWhitelistSerial { get; set; }
 
     public bool BlockTaskManager { get; set; } = true;
+    public bool BlockTaskManagerWindow { get; set; } = true; // закрывать окно диспетчера задач
     public bool BlockAltTab { get; set; } = true;
     public bool BlockWindowsKeys { get; set; } = true;
+    public bool BlockExplorerHotkeys { get; set; } = true; // Win+E, Win+R, Win+D и т.д.
     public bool HideCursor { get; set; } = false;
     public bool CoverAllMonitors { get; set; } = true;
     public bool DisableInternetOnLock { get; set; } = false; // через firewall rule
+
+    // Проводник и панель задач
+    public bool HideTaskbarOnLock { get; set; } = true; // скрывать панель задач
+    public bool KillExplorerOnLock { get; set; } = false; // убивать explorer.exe при блокировке (режим киоска) - агрессивно
+    public bool DisableTaskbarContextMenu { get; set; } = true;
+    public bool PreventWindowDeactivation { get; set; } = true; // не позволять окну потерять фокус
+
+    // Киоск режим
+    public bool EnableKioskMode { get; set; } = false; // полный киоск: скрыть все, блокировать все
+    public bool EnableProcessProtection { get; set; } = true; // защита от завершения процесса
+    public bool EnableCriticalProcessProtection { get; set; } = false; // BSOD при убийстве процесса - требует админа, опасно!
 
     public int FailedAttemptsBeforeLockout { get; set; } = 5;
     public int LockoutMinutes { get; set; } = 10;

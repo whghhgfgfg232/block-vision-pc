@@ -25,6 +25,9 @@ namespace BlockVision.App.Views;
 public partial class LockScreenWindow : Window
 {
     private readonly KeyboardHook _keyboardHook;
+    private readonly ExplorerBlocker _explorerBlocker;
+    private readonly ProcessProtector _processProtector;
+    private readonly WindowGuard _windowGuard;
     private readonly Timer _clockTimer;
     private readonly ConfigManager _config;
     private readonly LockService _lockService;
@@ -42,8 +45,21 @@ public partial class LockScreenWindow : Window
         {
             BlockAltTab = _config.Config.Locking.BlockAltTab,
             BlockWindowsKeys = _config.Config.Locking.BlockWindowsKeys,
-            BlockCtrlEsc = true
+            BlockCtrlEsc = true,
+            BlockExplorerHotkeys = _config.Config.Locking.BlockExplorerHotkeys,
+            BlockTaskManagerHotkeys = _config.Config.Locking.BlockTaskManager,
+            BlockAltEsc = true,
+            BlockAltF4 = _config.Config.Locking.BlockAltTab
         };
+
+        _explorerBlocker = new ExplorerBlocker(
+            hideTaskbar: _config.Config.Locking.HideTaskbarOnLock || _config.Config.Locking.EnableKioskMode,
+            killExplorer: _config.Config.Locking.KillExplorerOnLock,
+            blockTaskManager: _config.Config.Locking.BlockTaskManagerWindow
+        );
+
+        _processProtector = new ProcessProtector();
+        _windowGuard = new WindowGuard(this);
 
         // Подписка на события
         _lockService.LockRequested += OnLockRequested;
@@ -79,10 +95,72 @@ public partial class LockScreenWindow : Window
             }
         }
 
-        // Блокировка клавиатуры - только если не первый запуск без пароля
-        if (!string.IsNullOrWhiteSpace(_config.Config.AdminPasswordHash))
+        // === ЗАЩИТА ОТ ЗАКРЫТИЯ - БЛОКИРОВКА ПРОВОДНИКА ===
+        // Включаем защиту только если не первый запуск без пароля
+        if (!string.IsNullOrWhiteSpace(_config.Config.AdminPasswordHash) || _config.Config.Locking.EnableKioskMode)
         {
-            try { _keyboardHook.Install(); } catch { }
+            try
+            {
+                _keyboardHook.Install();
+                _logger.Log(AuditEventType.Lock, "KeyboardHook установлен", "LockScreen");
+            }
+            catch { }
+
+            // Блокировка проводника и панели задач
+            try
+            {
+                if (_config.Config.Locking.HideTaskbarOnLock || _config.Config.Locking.EnableKioskMode)
+                {
+                    _explorerBlocker.Enable();
+                    _logger.Log(AuditEventType.Lock, $"ExplorerBlocker включен: HideTaskbar={_config.Config.Locking.HideTaskbarOnLock}, KillExplorer={_config.Config.Locking.KillExplorerOnLock}", "ExplorerBlocker");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(AuditEventType.Lock, $"ExplorerBlocker ошибка: {ex.Message}", "ExplorerBlocker");
+            }
+
+            // Защита процесса от завершения
+            try
+            {
+                if (_config.Config.Security.EnableSelfProtection || _config.Config.Locking.EnableProcessProtection)
+                {
+                    _processProtector.SetAclProtection(true);
+                    _logger.Log(AuditEventType.Lock, "ProcessProtector ACL включен", "ProcessProtector");
+                }
+
+                // Критический процесс - только если включено в настройках и запущено от админа (ОПАСНО!)
+                if (_config.Config.Locking.EnableCriticalProcessProtection || _config.Config.Security.EnableCriticalProcessProtection)
+                {
+                    if (ProcessProtector.IsRunningAsAdmin())
+                    {
+                        var critical = _processProtector.SetCritical(true);
+                        if (critical)
+                            _logger.Log(AuditEventType.Lock, "Process установлен как критический (BSOD при убийстве)", "ProcessProtector");
+                    }
+                    else
+                    {
+                        _logger.Log(AuditEventType.Lock, "Critical protection требует прав администратора", "ProcessProtector");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(AuditEventType.Lock, $"ProcessProtector ошибка: {ex.Message}", "ProcessProtector");
+            }
+
+            // Охрана окна - не дать свернуть, закрыть, потерять фокус
+            try
+            {
+                if (_config.Config.Locking.PreventWindowDeactivation || _config.Config.Locking.EnableKioskMode)
+                {
+                    _windowGuard.Enable();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(AuditEventType.Lock, $"WindowGuard ошибка: {ex.Message}", "WindowGuard");
+            }
         }
 
         // Фокус - КРИТИЧНО для ввода с клавиатуры
@@ -103,6 +181,8 @@ public partial class LockScreenWindow : Window
         if (_lockService.IsLocked)
         {
             LockReasonText.Text = "Экран заблокирован системой безопасности";
+            if (_config.Config.Locking.EnableKioskMode)
+                LockReasonText.Text += " (Киоск режим - проводник заблокирован)";
         }
         else if (string.IsNullOrWhiteSpace(_config.Config.AdminPasswordHash))
         {
@@ -343,7 +423,17 @@ public partial class LockScreenWindow : Window
             SuccessText.Text = $"✓ Доступ разрешен через {(e.ViaPassword ? "пароль" : "ключ активации")}. Длительность блокировки: {e.LockDuration:mm\\:ss}";
             MessageBorder.Visibility = Visibility.Collapsed;
 
-            _keyboardHook.Uninstall();
+            // Снимаем всю защиту от закрытия
+            try
+            {
+                _keyboardHook.Uninstall();
+                _explorerBlocker.Disable();
+                _windowGuard.Disable();
+                _processProtector.Dispose();
+                _logger.Log(AuditEventType.Unlock, "Защита от закрытия снята (Explorer, KeyboardHook, WindowGuard, ProcessProtector)", "Unlock");
+            }
+            catch { }
+
             _clockTimer.Dispose();
 
             // Задержка для красоты
@@ -525,7 +615,14 @@ public partial class LockScreenWindow : Window
         }
         else
         {
-            _keyboardHook.Dispose();
+            try
+            {
+                _keyboardHook.Dispose();
+                _explorerBlocker.Disable();
+                _windowGuard.Disable();
+                _processProtector.Dispose();
+            }
+            catch { }
             _clockTimer.Dispose();
         }
     }
